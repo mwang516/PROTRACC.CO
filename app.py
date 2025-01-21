@@ -1,3 +1,9 @@
+import sys
+import site
+
+# Add Python 3.11 site-packages to path
+sys.path.append('/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages')
+
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from pymongo import MongoClient
@@ -69,7 +75,8 @@ def upload_video():
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     print(f"File saved to {os.path.join(app.config['UPLOAD_FOLDER'], filename)}")
 
-    subprocess.run(['python3', 'server/mediaToPose.py'])
+    # Explicitly use python3.11 for the subprocess
+    subprocess.run(['/usr/local/bin/python3.11', 'server/mediaToPose.py'])
     
     return jsonify({'message': 'Video saved successfully', 'filename': filename}), 200
 

@@ -1,3 +1,7 @@
+import sys
+import site
+print("Python path:", sys.path)
+print("Site packages:", site.getsitepackages())
 import cv2
 import mediapipe as mp
 import json
@@ -223,7 +227,7 @@ def mediaToPose(path):
             joint_id = int(joint_id)  # Convert joint ID to an integer
             joint_data["y"] -= max_y
 
-    with open('/Users/matthewwang/Desktop/nwHacks 2025/posture-visioner/public/moved.json', 'w') as f:
+    with open('/Users/matthewwang/Desktop/nwHacks 2025/protracc/public/moved.json', 'w') as f:
         json.dump(real, f, indent=4)
 
-mediaToPose("/Users/matthewwang/Desktop/nwHacks 2025/posture-visioner/server/videos/downloaded_video.mp4")
+mediaToPose("/Users/matthewwang/Desktop/nwHacks 2025/protracc/server/videos/downloaded_video.mp4")

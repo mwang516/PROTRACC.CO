@@ -1,5 +1,5 @@
 {
-  "name": "posture-visioner",
+  "name": "protracc.co",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "backend": "python3 app.py",
+    "backend": "python3.11 app.py",
     "dev:all": "concurrently \"npm run dev\" \"npm run backend\""
   },
   "dependencies": {
