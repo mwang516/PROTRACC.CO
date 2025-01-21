@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+   <title>Three.js Scene</title>
+   <script type="importmap">
+   {
+      "imports": {
+         "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+         "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+   }
+   </script>
+</head>
+
+<body>
+   <canvas id="threeCanvas"></canvas>
+   <script type="module">
+   import * as THREE from 'three';
+   import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js';
+
+   const scene = new THREE.Scene();
+   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+   const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('canvas') });
+   renderer.setSize(window.innerWidth, window.innerHeight);
+   renderer.setClearColor(new THREE.Color(0xffffff));
+
+   const controls = new OrbitControls(camera, renderer.domElement);
+   controls.enableDamping = true;
+
+   camera.position.set(10, -20, 30);
+
+   // Materials
+   const jointMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+   const boneMaterial = new THREE.MeshPhongMaterial({ color: 0x808080 });
+
+   // Add lights
+   scene.background = new THREE.Color( 0xa0a0a0 );
+   scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
+
+   const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444, 5 );
+   hemiLight.position.set( 0, 200, 0 );
+   scene.add( hemiLight );
+
+   const dirLight = new THREE.DirectionalLight( 0xffffff, 5 );
+   dirLight.position.set( 0, 200, 100 );
+   dirLight.castShadow = true;
+   dirLight.shadow.camera.top = 180;
+   dirLight.shadow.camera.bottom = - 100;
+   dirLight.shadow.camera.left = - 120;
+   dirLight.shadow.camera.right = 120;
+   scene.add( dirLight );
+   scene.add( camera );
+
+   // scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
+
+   // ground
+   const mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
+   mesh.rotation.x = - Math.PI / 2;
+   mesh.receiveShadow = true;
+   scene.add( mesh );
+
+   const grid = new THREE.GridHelper( 2000, 20, 0x000000, 0x000000 );
+   grid.material.opacity = 0.2;
+   grid.material.transparent = true;
+   scene.add( grid );
+
+
+   // Constants
+   const JOINT_RADIUS = 2;
+   const BONE_RADIUS = 1;
+   const SCALE = 2;
+
+   // Create joints and bones objects to store references
+   const joints = {};
+   const bones = {};
+
+   // Connections array (same as in your Blender script)
+   const connections = [
+      ["16","14"], ["14","12"], ["12","24"], ["24","26"], ["26","28"], ["28","30"], ["28","32"], ["30","32"],
+      ["15","13"], ["13","11"], ["11","23"], ["23","25"], ["25","27"], ["27","29"], ["27","31"], ["29","31"],
+      ["11","12"], ["23","24"],
+      ["0","10"], ["9","10"], ["0","9"]
+   ];
+
+   // Function to create a sphere (joint)
+   function createJoint(name) {
+      const geometry = new THREE.SphereGeometry(JOINT_RADIUS);
+      const mesh = new THREE.Mesh(geometry, jointMaterial);
+      mesh.name = `Joint_${name}`;
+      scene.add(mesh);
+      return mesh;
+   }
+
+   // Function to create a bone (cylinder)
+   function createBone(startId, endId) {
+      const geometry = new THREE.CylinderGeometry(BONE_RADIUS, BONE_RADIUS, 1, 8);
+      geometry.translate(0, 0.5, 0); // Move pivot to end
+      geometry.rotateX(Math.PI / 2); // Align with Z-axis
+      const mesh = new THREE.Mesh(geometry, boneMaterial);
+      mesh.name = `Bone_${startId}_${endId}`;
+      scene.add(mesh);
+      return mesh;
+   }
+
+   // Function to update bone position and rotation
+   function updateBone(bone, startPos, endPos) {
+      const direction = new THREE.Vector3().subVectors(endPos, startPos);
+      const length = direction.length();
+      
+      bone.position.copy(startPos);
+      bone.scale.set(1, 1, length);
+      bone.lookAt(endPos);
+   }
+
+   // Initialize joints and bones
+   async function initializeSkeletonParts() {
+      const response = await fetch('./moved.json');
+      const data = await response.json();
+      
+      // Create joints
+      for (const jointId in data[0]) {
+         joints[jointId] = createJoint(jointId);
+      }
+      
+      // Create bones
+      for (const [startId, endId] of connections) {
+         bones[`${startId}_${endId}`] = createBone(startId, endId);
+      }
+      
+      return data;
+   }
+
+   // Animation
+   let frame = 0;
+   let poseData = null;
+
+   async function init() {
+      poseData = await initializeSkeletonParts();
+   }
+   // Desired update rate for bones and joints (e.g., 10 updates per second)
+   const UPDATE_RATE = 30; // Updates per second
+   const UPDATE_INTERVAL = 1000 / UPDATE_RATE;
+
+   let lastUpdateTime = 0;
+
+   function animate(timestamp) {
+      requestAnimationFrame(animate);
+
+      // Allow camera controls to update smoothly
+      controls.update();
+
+      // Render the scene
+      renderer.render(scene, camera);
+
+      // Only update bones and joints if enough time has elapsed
+      if (timestamp - lastUpdateTime >= UPDATE_INTERVAL) {
+         lastUpdateTime = timestamp;
+
+         if (poseData && frame < poseData.length) {
+               const frameData = poseData[frame];
+
+               // Update joints
+               for (const [jointId, jointData] of Object.entries(frameData)) {
+                  const joint = joints[jointId];
+                  if (joint) {
+                     const x = -(jointData.x) * SCALE; // Flip X axis
+                     const y = -(jointData.y) * SCALE; // Flip Y axis
+                     const z = jointData.z * SCALE;
+
+                     joint.position.set(x, y, z);
+                     joint.visible = jointData.visibility >= 0.02;
+                  }
+               }
+
+               // Update bones
+               for (const [startId, endId] of connections) {
+                  const bone = bones[`${startId}_${endId}`];
+                  const startJoint = joints[startId];
+                  const endJoint = joints[endId];
+
+                  if (bone && startJoint && endJoint) {
+                     updateBone(bone, startJoint.position, endJoint.position);
+                     bone.visible = startJoint.visible && endJoint.visible;
+                  }
+               }
+
+               // Move to the next frame
+               frame = (frame + 1) % poseData.length; // Loop animation
+         }
+      }
+   }
+   init().then(() => {
+      animate();
+      // Send message to parent when Three.js is ready
+      window.parent.postMessage('threejs-ready', '*');
+   });
+
+   // Handle window resize
+   window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+   });
+   </script>
+</body>
+</html>
