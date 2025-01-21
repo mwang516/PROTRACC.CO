@@ -16,7 +16,7 @@ export default function NavBar() {
           </Link>
   
           {/* Demo Link */}
-          <Link href="https://youtube.com" className="relative group py-4 px-6">
+          <Link href="https://www.youtube.com/watch?v=lFdqfANIhVw&ab_channel=JoeLiang" className="relative group py-4 px-6">
             <p className="relative z-10 text-white group-hover:text-gray-900 group-hover:font-bold transition-colors duration-300">
             Demo 
             </p>
