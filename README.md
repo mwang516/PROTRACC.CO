@@ -1,6 +1,6 @@
 # PROTRACC.CO
 
-PROTRACC.CO revolutionizes biomechanical analysis by making professional-grade movement tracking accessible to everyone. Our platform helps athletes improve their performance through AI-powered motion analysis and personalized feedback. 
+PROTRACC.CO revolutionizes biomechanical analysis by making professional-grade movement tracking accessible to everyone. Our platform helps athletes improve their performance through AI-powered motion analysis and personalized feedback. This project was developed during nwHacks 2025, Western Canada's largest hackathon.
 
 ## 🌟 Features
 
